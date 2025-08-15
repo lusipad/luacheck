@@ -4,9 +4,10 @@ local check_state = {}
 
 local CheckState = utils.class()
 
-function CheckState:__init(source_bytes)
+function CheckState:__init(source_bytes, options)
    self.source_bytes = source_bytes
    self.warnings = {}
+   self.options = options or {}
 end
 
 -- Returns column of a character in a line given its offset.

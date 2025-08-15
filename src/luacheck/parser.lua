@@ -528,6 +528,9 @@ local function parse_simple_expression(state, kind, no_literals)
       check_and_skip_closing_token(state, paren_range, "(")
    elseif state.token == "name" then
       expression = parse_id(state)
+   elseif state.token == "#" and state.options.ks then
+      -- In ks mode, # is treated as a global table
+      expression = parse_id(state)
    else
       local literal_handler = simple_expressions[state.token]
 
@@ -554,6 +557,13 @@ local unary_operators = {
    ["-"] = "unm",
    ["~"] = "bnot",
    ["#"] = "len"
+}
+
+local unary_operators_ks = {
+   ["not"] = "not",
+   ["-"] = "unm",
+   ["~"] = "bnot"
+   -- # is removed in ks mode (treated as global table)
 }
 
 local unary_priority = 12
@@ -952,7 +962,8 @@ function parse_block(state, opening_token_range, opening_token, block)
    return block
 end
 
-function new_state(src, line_offsets, line_lengths)
+function new_state(src, line_offsets, line_lengths, options)
+   options = options or {}
    return {
       lexer = lexer.new_state(src, line_offsets, line_lengths),
       -- Set of line numbers containing code.
@@ -962,7 +973,9 @@ function new_state(src, line_offsets, line_lengths)
       -- Array of {contents = string} with range info.
       comments = {},
        -- Array of ranges of semicolons not following a statement.
-      hanging_semicolons = {}
+      hanging_semicolons = {},
+      -- Language options
+      options = options
    }
 end
 
@@ -973,8 +986,8 @@ end
 -- The last two tables can be passed as arguments to be filled.
 -- On error throws an instance of parser.SyntaxError: table {msg = msg, prev_range = prev_range?} with range info,
 -- prev_range may refer to some extra relevant location.
-function parser.parse(src, line_offsets, line_lengths)
-   local state = new_state(src, line_offsets, line_lengths)
+function parser.parse(src, line_offsets, line_lengths, options)
+   local state = new_state(src, line_offsets, line_lengths, options)
    skip_token(state)
    local ast = parse_block(state)
    return ast, state.comments, state.code_lines, state.line_endings, state.hanging_semicolons,

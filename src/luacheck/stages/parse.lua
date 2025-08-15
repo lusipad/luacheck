@@ -8,7 +8,7 @@ function stage.run(chstate)
    chstate.line_offsets = {}
    chstate.line_lengths = {}
    local ast, comments, code_lines, line_endings, useless_semicolons = parser.parse(
-      chstate.source, chstate.line_offsets, chstate.line_lengths)
+      chstate.source, chstate.line_offsets, chstate.line_lengths, chstate.options)
    chstate.ast = ast
    chstate.comments = comments
    chstate.code_lines = code_lines

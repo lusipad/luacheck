@@ -23,6 +23,7 @@ local BYTE_PLUS, BYTE_DASH, BYTE_LDASH = sbyte("+"), sbyte("-"), sbyte("_")
 local BYTE_SLASH, BYTE_BSLASH = sbyte("/"), sbyte("\\")
 local BYTE_EQ, BYTE_NE = sbyte("="), sbyte("~")
 local BYTE_LT, BYTE_GT = sbyte("<"), sbyte(">")
+local BYTE_HASH = sbyte("#")
 local BYTE_LF, BYTE_CR = sbyte("\n"), sbyte("\r")
 local BYTE_SPACE, BYTE_FF, BYTE_TAB, BYTE_VTAB = sbyte(" "), sbyte("\f"), sbyte("\t"), sbyte("\v")
 
@@ -633,6 +634,32 @@ local function lex_dot(state)
    end
 end
 
+local function lex_hash(state, b)
+   -- In ks mode, # should be treated as an identifier
+   if state.options and state.options.ks then
+      -- Treat # as an identifier character
+      -- Start from the current position (which is after #)
+      local start = state.offset - 1  -- Include the # character
+      
+      -- Continue reading identifier characters
+      local next_b = next_byte(state)
+      while (next_b ~= nil) and (is_alpha(next_b) or to_dec(next_b)) do
+         next_b = next_byte(state)
+      end
+      
+      local ident = state.src:get_substring(start, state.offset - 1)
+      
+      if keywords[ident] then
+         return ident
+      else
+         return "name", ident
+      end
+   else
+      -- Normal mode: # is length operator
+      return "#"
+   end
+end
+
 local function lex_any(state, b)
    state.offset = state.offset + 1
 
@@ -660,6 +687,7 @@ local byte_handlers = {
    [BYTE_NE] = lex_ne,
    [BYTE_LT] = lex_lt,
    [BYTE_GT] = lex_gt,
+   [BYTE_HASH] = lex_hash,
    [BYTE_LDASH] = lex_ident
 }
 
@@ -676,13 +704,14 @@ for b=BYTE_A, BYTE_Z do
 end
 
 -- Creates and returns lexer state for source.
-function lexer.new_state(src, line_offsets, line_lengths)
+function lexer.new_state(src, line_offsets, line_lengths, options)
    local state = {
       src = src,
       line = 1,
       line_offsets = line_offsets or {},
       line_lengths = line_lengths or {},
-      offset = 1
+      offset = 1,
+      options = options or {}
    }
 
    state.line_offsets[1] = 1

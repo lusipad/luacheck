@@ -131,6 +131,9 @@ Links:
          "Allow defining globals implicitly by setting them in the top level scope."),
       parser:flag("-m --module", "Limit visibility of implicitly defined globals to their files."))
 
+   parser:group("Options for language variants",
+      parser:flag("--ks", "Enable ks language support (0-based indexing, getlength instead of #, # as global table)."))
+
    parser:group("Options for configuring line length limits",
       parser:option("--max-line-length", "Set maximum allowed line length (default: 120).")
          :argname "<length>"

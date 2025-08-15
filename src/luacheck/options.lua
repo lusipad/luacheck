@@ -75,6 +75,7 @@ options.variadic_inline_options = {
 
 options.all_options = {
    std = std_or_array_of_strings,
+   ks = boolean,
    max_line_length = number_or_false,
    max_code_line_length = number_or_false,
    max_string_line_length = number_or_false,
@@ -391,6 +392,7 @@ local scalar_options = {
    module = false,
    allow_defined = false,
    allow_defined_top = false,
+   ks = false,
    max_cyclomatic_complexity = false
 }
 
