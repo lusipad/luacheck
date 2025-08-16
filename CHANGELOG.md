@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.0.1 (2025-08-16)
+
+### Fixed
+
+* **CI Test Fixes**: Resolved all failing CI tests including:
+  - Documentation build path corrections
+  - KS language test compatibility improvements
+  - Cross-platform formatting fixes
+  - Windows-specific test adjustments
+
+### Added
+
+* **Automated Release Workflows**: Enhanced release automation with:
+  - Auto-release workflow for automatic version bumping
+  - Manual release workflow for specific version control
+  - CI integration for automatic release triggering
+
+### Changed
+
+* **Workflow Improvements**: Updated GitHub Actions workflows for better reliability
+* **Documentation**: Enhanced workflow documentation and usage instructions
+
 ## 1.0.0 (2025-08-16)
 
 ### Major Changes
