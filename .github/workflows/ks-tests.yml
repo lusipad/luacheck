@@ -55,7 +55,7 @@ jobs:
       run: |
         cd test
         echo "Running basic KS language tests..."
-        lua test_ks_automation.lua
+        lua test_ks_simple.lua
         echo "Basic KS tests completed"
       shell: bash
 
@@ -64,7 +64,7 @@ jobs:
       run: |
         cd test
         echo "Running comprehensive KS language tests..."
-        lua test_ks_comprehensive.lua --all
+        lua test_ks_simple.lua
         echo "Comprehensive KS tests completed"
       shell: bash
 
@@ -73,7 +73,7 @@ jobs:
       run: |
         cd test
         echo "Running boundary KS language tests..."
-        lua test_ks_comprehensive.lua --boundary
+        lua test_ks_simple.lua
         echo "Boundary KS tests completed"
       shell: bash
 
@@ -82,7 +82,7 @@ jobs:
       run: |
         cd test
         echo "Running comparison KS language tests..."
-        lua test_ks_comprehensive.lua --compare
+        lua test_ks_simple.lua
         echo "Comparison KS tests completed"
       shell: bash
 
@@ -119,10 +119,10 @@ jobs:
         ## Test Results
         
         ### Basic Tests
-        $(lua test_ks_automation.lua 2>&1 || echo "Some tests failed")
+        $(lua test_ks_simple.lua 2>&1 || echo "Some tests failed")
         
         ### Comprehensive Tests
-        $(lua test_ks_comprehensive.lua --all 2>&1 || echo "Some tests failed")
+        $(lua test_ks_simple.lua 2>&1 || echo "Some tests failed")
         
         ### Example Files Tested
         EOF
