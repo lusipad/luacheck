@@ -148,8 +148,8 @@ jobs:
         echo "Checking for outdated documentation..."
         
         # Check if version numbers are consistent
-        if [ -f "src/luacheck/version.lua" ]; then
-          version=$(grep "version" src/luacheck/version.lua | head -1 | cut -d'"' -f2)
+        if [ -f "src/luacheck/init.lua" ]; then
+          version=$(grep '_VERSION' src/luacheck/init.lua | head -1 | cut -d'"' -f2)
           echo "Version in code: $version"
           
           # Check if version is mentioned in README
