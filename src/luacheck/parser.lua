@@ -528,9 +528,15 @@ local function parse_simple_expression(state, kind, no_literals)
       check_and_skip_closing_token(state, paren_range, "(")
    elseif state.token == "name" then
       expression = parse_id(state)
-   elseif state.token == "#" and state.options.ks then
-      -- In ks mode, # is treated as a global table
-      expression = parse_id(state)
+   elseif state.token == "#" then
+      if state.options and state.options.ks then
+         -- In ks mode, # is treated as a global table
+         expression = parse_id(state)
+      else
+         -- In normal mode, # should not appear here as a simple expression
+         -- It should be handled by unary operator parsing
+         parse_error(state, "expected expression")
+      end
    else
       local literal_handler = simple_expressions[state.token]
 
@@ -612,7 +618,7 @@ local right_priorities = {
 
 local function parse_subexpression(state, limit, kind)
    local expression
-   local unary_operator = unary_operators[state.token]
+   local unary_operator = (state.options and state.options.ks) and unary_operators_ks[state.token] or unary_operators[state.token]
 
    if unary_operator then
       local operator_range = copy_range(state)

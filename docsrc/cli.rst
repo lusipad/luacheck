@@ -147,6 +147,7 @@ Option                                  Meaning
 ``--codes``                             Show warning codes.
 ``--ranges``                            Show ranges of columns related to warnings.
 ``--no-color``                          Do not colorize output.
+``--ks``                                Enable ks language support (0-based indexing, getlength instead of #, # as global table).
 ``-v | --version``                      Show version of Luacheck and its dependencies and exit.
 ``-h | --help``                         Show help and exit.
 ======================================= ================================================================================

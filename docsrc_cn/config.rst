@@ -51,6 +51,7 @@
 ``max_string_line_length``    数字或 ``false``                       ``120``
 ``max_comment_line_length``   数字或 ``false``                       ``120``
 ``max_cyclomatic_complexity`` 数字或 ``false``                       ``false``
+``ks``                        布尔值                                  ``false``
 ``ignore``                    模式数组（见 :ref:`patterns`）        ``{}``
 ``enable``                    模式数组                               ``{}``
 ``only``                      模式数组                               （不过滤）
@@ -63,6 +64,41 @@
 
    std = "min"
    ignore = {"212"}
+
+.. _language_variants:
+
+语言变体
+--------
+
+Luacheck 支持通过配置选项检查用不同语言变体编写的代码。
+
+**ks 语言支持**
+
+当启用 ``ks`` 选项时，Luacheck 将使用 ks 语言语义检查代码：
+
+* **0 基索引**：数组索引从 0 开始而不是 1
+* **getlength 函数**：使用 ``getlength(table)`` 而不是 ``#table`` 运算符  
+* **# 作为全局表**：``#`` 字符被视为全局表标识符，而不是长度运算符
+
+这允许 Luacheck 正确检查为 ks 语言变体编写的代码。
+
+配置示例：
+
+.. code-block:: lua
+   :linenos:
+
+   ks = true
+
+这也可以使用内联选项按文件启用：
+
+.. code-block:: lua
+   :linenos:
+
+   -- luacheck: ks
+   local arr = {10, 20, 30}
+   print(arr[0])      -- 0 基索引
+   print(getlength(arr)) -- 使用 getlength 而不是 #
+   local val = #arr   -- # 被视为全局表
 
 .. _custom_stds:
 

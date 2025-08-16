@@ -2,8 +2,10 @@
 
 [![Join the chat at https://gitter.im/luacheck/Lobby](https://badges.gitter.im/luacheck/Lobby.svg)](https://gitter.im/luacheck/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-[![Build Status](https://travis-ci.org/mpeterv/luacheck.png?branch=master)](https://travis-ci.org/mpeterv/luacheck)
-[![Windows build status](https://ci.appveyor.com/api/projects/status/pgox2vvelagw1fux/branch/master?svg=true&passingText=Windows%20build%20passing&failingText=Windows%20build%20failing)](https://ci.appveyor.com/project/mpeterv/luacheck/branch/master)
+[![CI](https://github.com/mpeterv/luacheck/workflows/CI/badge.svg)](https://github.com/mpeterv/luacheck/actions/workflows/ci.yml)
+[![Release](https://github.com/mpeterv/luacheck/workflows/Release/badge.svg)](https://github.com/mpeterv/luacheck/actions/workflows/release.yml)
+[![KS Tests](https://github.com/mpeterv/luacheck/workflows/KS%20Language%20Tests/badge.svg)](https://github.com/mpeterv/luacheck/actions/workflows/ks-tests.yml)
+[![Documentation](https://github.com/mpeterv/luacheck/workflows/Documentation/badge.svg)](https://github.com/mpeterv/luacheck/actions/workflows/docs.yml)
 [![codecov](https://codecov.io/gh/mpeterv/luacheck/branch/master/graph/badge.svg)](https://codecov.io/gh/mpeterv/luacheck)
 [![License](https://img.shields.io/badge/License-MIT-brightgreen.svg)](LICENSE)
 
@@ -23,6 +25,33 @@
 Luacheck is a static analyzer and a linter for [Lua](http://www.lua.org). Luacheck detects various issues such as usage of undefined global variables, unused variables and values, accessing uninitialized variables, unreachable code and more. Most aspects of checking are configurable: there are options for defining custom project-related globals, for selecting set of standard globals (version of Lua standard library), for filtering warnings by type and name of related variable, etc. The options can be used on the command line, put into a config or directly into checked files as Lua comments.
 
 Luacheck supports checking Lua files using syntax of Lua 5.1, Lua 5.2, Lua 5.3 and LuaJIT. Luacheck itself is written in Lua and runs on all of mentioned Lua versions.
+
+### KS Language Support
+
+Luacheck now includes support for the **KS language**, a Lua variant with the following features:
+
+- **0-based indexing** for arrays and strings
+- **`getlength()` function** instead of the `#` operator
+- **`#` prefix for global tables** (e.g., `#config = {value = 42}`)
+- **Enhanced syntax** for better readability
+
+To check KS language files, use the `--ks` flag:
+
+```bash
+luacheck --ks myfile.ks
+```
+
+### Automated Workflows
+
+This project uses GitHub Actions for automated:
+
+- **Continuous Integration** - Multi-platform testing and linting
+- **Releases** - Automatic binary creation and GitHub releases on tag pushes
+- **Documentation** - Automated docs building and deployment
+- **KS Language Testing** - Comprehensive testing of KS language features
+- **Dependency Management** - Security audits and dependency updates
+
+See [`.github/workflows/`](.github/workflows/) for workflow details.
 
 ## Installation
 
@@ -114,6 +143,51 @@ Use the Luacheck issue tracker on GitHub to submit bugs, suggestions and questio
 ## Building and testing
 
 After the Luacheck repo is cloned and changes are made, run `luarocks make` (using `sudo` if necessary) from its root directory to install dev version of Luacheck. To run Luacheck using sources in current directory without installing it, run `lua -e 'package.path="./src/?.lua;./src/?/init.lua;"..package.path' bin/luacheck.lua ...`. To test Luacheck, ensure that you have [busted](http://olivinelabs.com/busted/) and [luautf8](https://github.com/starwing/luautf8) installed and run `busted`.
+
+### KS Language Testing
+
+To test the KS language support:
+
+```bash
+# Run all KS language tests
+cd test && lua test_ks_comprehensive.lua
+
+# Run specific test categories
+cd test && lua test_ks_comprehensive.lua --basic
+cd test && lua test_ks_comprehensive.lua --boundary
+cd test && lua test_ks_comprehensive.lua --compare
+```
+
+### Creating Releases
+
+To create a new release:
+
+1. **Using the release helper script:**
+   ```bash
+   lua scripts/release_helper.lua
+   ```
+
+2. **Manual process:**
+   - Update version in `src/luacheck/version.lua`
+   - Update rockspec files
+   - Update `CHANGELOG.md`
+   - Commit changes and create a tag:
+     ```bash
+     git tag v1.2.0
+     git push origin v1.2.0
+     ```
+   - GitHub Actions will automatically build and create the release
+
+### Automated Releases
+
+The project uses GitHub Actions for automated releases:
+
+- **Trigger:** Push to tags matching `v*` (e.g., `v1.2.0`)
+- **Assets:** Creates binaries for Linux, Windows, and macOS
+- **Testing:** Runs comprehensive tests including KS language tests
+- **Deployment:** Automatically publishes to GitHub Releases
+
+See [`.github/workflows/README.md`](.github/workflows/README.md) for details.
 
 ## License
 

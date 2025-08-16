@@ -1,5 +1,34 @@
 # Changelog
 
+## 1.0.0 (2025-08-16)
+
+### Major Changes
+
+* **GitHub Actions Integration**: Added comprehensive automated workflows for:
+  - **Automated Releases**: Multi-platform binary creation and GitHub releases on tag pushes
+  - **Continuous Integration**: Multi-platform testing across Lua 5.1, 5.2, 5.3, 5.4, and LuaJIT
+  - **KS Language Support**: Complete testing framework for KS language features
+  - **Security Audits**: Automated vulnerability scanning and code quality checks
+  - **Documentation**: Automated docs building and deployment
+
+### New Features
+
+* **KS Language Support**: Added support for KS language variant with:
+  - 0-based indexing for arrays and strings
+  - `getlength()` function instead of `#` operator
+  - `#` prefix for global tables
+  - Enhanced syntax for better readability
+* **Automated Release Process**: Release helper script for streamlined version management
+* **Multi-platform Binaries**: Automated builds for Linux, Windows, and macOS
+* **Comprehensive Testing**: Enhanced test suite with KS language validation
+
+### Improvements
+
+* **Better CI/CD**: Full automation of testing, building, and release processes
+* **Enhanced Documentation**: Updated README with GitHub Actions badges and workflow documentation
+* **Security Enhancements**: Automated security scanning and vulnerability detection
+* **Performance Monitoring**: Automated benchmarking and performance tracking
+
 ## 0.24.0 (not yet released)
 
 ### Changes

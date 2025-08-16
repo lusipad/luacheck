@@ -51,6 +51,7 @@ Option                        Type                                     Default v
 ``max_string_line_length``    Number or ``false``                      ``120``
 ``max_comment_line_length``   Number or ``false``                      ``120``
 ``max_cyclomatic_complexity`` Number or ``false``                      ``false``
+``ks``                        Boolean                                  ``false``
 ``ignore``                    Array of patterns (see :ref:`patterns`)  ``{}``
 ``enable``                    Array of patterns                        ``{}``
 ``only``                      Array of patterns                        (Do not filter)
@@ -63,6 +64,41 @@ An example of a config which makes ``luacheck`` ensure that only globals from th
 
    std = "min"
    ignore = {"212"}
+
+.. _language_variants:
+
+Language variants
+-----------------
+
+Luacheck supports checking code written in different language variants through configuration options.
+
+**ks language support**
+
+When ``ks`` option is enabled, Luacheck will check code using ks language semantics:
+
+* **0-based indexing**: Array indices start from 0 instead of 1
+* **getlength function**: Use ``getlength(table)`` instead of ``#table`` operator  
+* **# as global table**: The ``#`` character is treated as a global table identifier, not as the length operator
+
+This allows Luacheck to properly lint code written for the ks language variant.
+
+Example configuration:
+
+.. code-block:: lua
+   :linenos:
+
+   ks = true
+
+This can also be enabled per-file using inline options:
+
+.. code-block:: lua
+   :linenos:
+
+   -- luacheck: ks
+   local arr = {10, 20, 30}
+   print(arr[0])      -- 0-based indexing
+   print(getlength(arr)) -- Use getlength instead of #
+   local val = #arr   -- # is treated as global table
 
 .. _custom_stds:
 

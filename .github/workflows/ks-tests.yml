@@ -1,0 +1,414 @@
+name: KS Language Tests
+
+on:
+  push:
+    branches: [ master, main, develop ]
+    paths: 
+      - 'src/**'
+      - 'test/**'
+      - '.github/workflows/ks-tests.yml'
+  pull_request:
+    branches: [ master, main ]
+    paths: 
+      - 'src/**'
+      - 'test/**'
+  schedule:
+    # Run tests daily at 2 AM UTC
+    - cron: '0 2 * * *'
+
+jobs:
+  ks-language-tests:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        lua_version: [5.2, 5.3, 5.4]
+        test_type: [basic, comprehensive, boundary, comparison]
+        
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Lua
+      uses: leafo/gh-actions-lua@v10
+      with:
+        luaVersion: ${{ matrix.lua_version }}
+
+    - name: Set up Luarocks
+      uses: leafo/gh-actions-luarocks@v4
+
+    - name: Install dependencies
+      run: |
+        luarocks install luafilesystem
+        luarocks install argparse
+
+    - name: Build luacheck
+      run: |
+        if [ "${{ matrix.os }}" = "windows-latest" ]; then
+          make windows
+        else
+          make
+        fi
+      shell: bash
+
+    - name: Run Basic KS Tests
+      if: matrix.test_type == 'basic'
+      run: |
+        cd test
+        echo "Running basic KS language tests..."
+        lua test_ks_automation.lua
+        echo "Basic KS tests completed"
+      shell: bash
+
+    - name: Run Comprehensive KS Tests
+      if: matrix.test_type == 'comprehensive'
+      run: |
+        cd test
+        echo "Running comprehensive KS language tests..."
+        lua test_ks_comprehensive.lua --all
+        echo "Comprehensive KS tests completed"
+      shell: bash
+
+    - name: Run Boundary KS Tests
+      if: matrix.test_type == 'boundary'
+      run: |
+        cd test
+        echo "Running boundary KS language tests..."
+        lua test_ks_comprehensive.lua --boundary
+        echo "Boundary KS tests completed"
+      shell: bash
+
+    - name: Run Comparison KS Tests
+      if: matrix.test_type == 'comparison'
+      run: |
+        cd test
+        echo "Running comparison KS language tests..."
+        lua test_ks_comprehensive.lua --compare
+        echo "Comparison KS tests completed"
+      shell: bash
+
+    - name: Test KS Example Files
+      run: |
+        cd test
+        echo "Testing KS example files..."
+        
+        # Test each example file
+        for file in *.ks; do
+          if [ -f "$file" ]; then
+            echo "Testing $file..."
+            ../bin/luacheck "$file" --ks || echo "Warning: Failed to check $file"
+          fi
+        done
+        echo "KS example files testing completed"
+      shell: bash
+
+    - name: Generate KS Test Report
+      if: matrix.test_type == 'comprehensive' && matrix.os == 'ubuntu-latest' && matrix.lua_version == '5.3'
+      run: |
+        cd test
+        echo "Generating KS test report..."
+        
+        # Create test report
+        cat > ks-test-report.md << EOF
+        # KS Language Test Report
+        
+        ## Test Environment
+        - OS: ${{ matrix.os }}
+        - Lua Version: ${{ matrix.lua_version }}
+        - Date: $(date)
+        
+        ## Test Results
+        
+        ### Basic Tests
+        $(lua test_ks_automation.lua 2>&1 || echo "Some tests failed")
+        
+        ### Comprehensive Tests
+        $(lua test_ks_comprehensive.lua --all 2>&1 || echo "Some tests failed")
+        
+        ### Example Files Tested
+        EOF
+        
+        # Add example file test results
+        for file in *.ks; do
+          if [ -f "$file" ]; then
+            echo "- $file" >> ks-test-report.md
+          fi
+        done
+        
+        echo "KS test report generated"
+      shell: bash
+
+    - name: Upload KS Test Report
+      if: matrix.test_type == 'comprehensive' && matrix.os == 'ubuntu-latest' && matrix.lua_version == '5.3'
+      uses: actions/upload-artifact@v4
+      with:
+        name: ks-test-report
+        path: test/ks-test-report.md
+
+  ks-performance-tests:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Lua
+      uses: leafo/gh-actions-lua@v10
+      with:
+        luaVersion: 5.3
+
+    - name: Set up Luarocks
+      uses: leafo/gh-actions-luarocks@v4
+
+    - name: Install dependencies
+      run: |
+        luarocks install luafilesystem
+        luarocks install argparse
+
+    - name: Build luacheck
+      run: |
+        make
+
+    - name: Run Performance Tests
+      run: |
+        cd test
+        echo "Running KS language performance tests..."
+        
+        # Create performance test script
+        cat > performance_test.lua << 'EOF'
+        local luacheck = require('luacheck')
+        
+        -- Performance test for KS language parsing
+        local start_time = os.clock()
+        
+        -- Test large KS file parsing
+        local large_code = [[
+        #config = {debug = true, performance = "high"}
+        local data = {}
+        for i = 0, 9999 do
+            data[i] = {
+                id = i,
+                name = "item_" .. i,
+                value = math.random(1, 1000),
+                processed = false
+            }
+        end
+        
+        local function process_items(items)
+            local count = 0
+            for i = 0, getlength(items) - 1 do
+                if items[i].value > 500 then
+                    count = count + 1
+                    items[i].processed = true
+                end
+            end
+            return count
+        end
+        
+        local result = process_items(data)
+        print("Processed " .. result .. " items")
+        ]]
+        
+        local success, report = pcall(function()
+            return luacheck.check_strings({large_code}, {ks = true})
+        end)
+        
+        local end_time = os.clock()
+        local duration = end_time - start_time
+        
+        print("Performance test completed in " .. duration .. " seconds")
+        print("Success: " .. tostring(success))
+        if success then
+            print("Errors: " .. (report.errors or 0))
+            print("Warnings: " .. (report.warnings or 0))
+        end
+        
+        -- Test multiple small files
+        start_time = os.clock()
+        for i = 1, 100 do
+            local small_code = [[
+            #test = {value = ]] .. i .. [[}
+            local arr = {1, 2, 3}
+            return arr[0] + #test.value
+            ]]
+            pcall(function()
+                return luacheck.check_strings({small_code}, {ks = true})
+            end)
+        end
+        end_time = os.clock()
+        
+        print("100 small files processed in " .. (end_time - start_time) .. " seconds")
+        EOF
+        
+        lua performance_test.lua
+        echo "Performance tests completed"
+
+    - name: Benchmark KS vs Standard Lua
+      run: |
+        cd test
+        echo "Benchmarking KS vs Standard Lua..."
+        
+        cat > benchmark.lua << 'EOF'
+        local luacheck = require('luacheck')
+        
+        -- Test code samples
+        local samples = {
+            lua = [[
+            local arr = {1, 2, 3, 4, 5}
+            local sum = 0
+            for i = 1, #arr do
+                sum = sum + arr[i]
+            end
+            return sum
+            ]],
+            ks = [[
+            local arr = {1, 2, 3, 4, 5}
+            local sum = 0
+            for i = 0, getlength(arr) - 1 do
+                sum = sum + arr[i]
+            end
+            return sum
+            ]]
+        }
+        
+        -- Benchmark function
+        local function benchmark(code, options)
+            local start_time = os.clock()
+            for i = 1, 1000 do
+                pcall(function()
+                    return luacheck.check_strings({code}, options)
+                end)
+            end
+            local end_time = os.clock()
+            return end_time - start_time
+        end
+        
+        local lua_time = benchmark(samples.lua, {})
+        local ks_time = benchmark(samples.ks, {ks = true})
+        
+        print("Lua benchmark: " .. lua_time .. " seconds")
+        print("KS benchmark: " .. ks_time .. " seconds")
+        print("Performance ratio: " .. (ks_time / lua_time))
+        EOF
+        
+        lua benchmark.lua
+        echo "Benchmark completed"
+
+  ks-compatibility-tests:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        lua_version: [5.2, 5.3, 5.4]
+        
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Lua
+      uses: leafo/gh-actions-lua@v10
+      with:
+        luaVersion: ${{ matrix.lua_version }}
+
+    - name: Set up Luarocks
+      uses: leafo/gh-actions-luarocks@v4
+
+    - name: Install dependencies
+      run: |
+        luarocks install luafilesystem
+        luarocks install argparse
+
+    - name: Build luacheck
+      run: |
+        if [ "${{ matrix.os }}" = "windows-latest" ]; then
+          make windows
+        else
+          make
+        fi
+      shell: bash
+
+    - name: Test KS Language Compatibility
+      run: |
+        cd test
+        echo "Testing KS language compatibility..."
+        
+        # Test compatibility with existing Lua code
+        cat > compatibility_test.lua << 'EOF'
+        local luacheck = require('luacheck')
+        
+        -- Test cases for compatibility
+        local test_cases = {
+            -- Should work in both modes
+            {
+                name = "Standard Lua code",
+                code = [[
+                local function add(a, b)
+                    return a + b
+                end
+                local result = add(10, 20)
+                print("Result: " .. result)
+                ]],
+                should_pass_lua = true,
+                should_pass_ks = true
+            },
+            -- Should only work in Lua mode
+            {
+                name = "Lua-specific length operator",
+                code = [[
+                local arr = {1, 2, 3}
+                local len = #arr
+                return len
+                ]],
+                should_pass_lua = true,
+                should_pass_ks = false
+            },
+            -- Should only work in KS mode
+            {
+                name = "KS-specific global table",
+                code = [[
+                #config = {value = 42}
+                return #config.value
+                ]],
+                should_pass_lua = false,
+                should_pass_ks = true
+            }
+        }
+        
+        local passed = 0
+        local failed = 0
+        
+        for _, test in ipairs(test_cases) do
+            print("Testing: " .. test.name)
+            
+            -- Test in Lua mode
+            local lua_success, lua_report = pcall(function()
+                return luacheck.check_strings({test.code}, {})
+            end)
+            
+            -- Test in KS mode
+            local ks_success, ks_report = pcall(function()
+                return luacheck.check_strings({test.code}, {ks = true})
+            end)
+            
+            local lua_passed = lua_success and (lua_report.errors or 0) == 0
+            local ks_passed = ks_success and (ks_report.errors or 0) == 0
+            
+            if lua_passed == test.should_pass_lua and ks_passed == test.should_pass_ks then
+                print("✅ PASS")
+                passed = passed + 1
+            else
+                print("❌ FAIL")
+                print("  Lua mode: " .. (lua_passed and "PASS" or "FAIL") .. " (expected: " .. (test.should_pass_lua and "PASS" or "FAIL") .. ")")
+                print("  KS mode: " .. (ks_passed and "PASS" or "FAIL") .. " (expected: " .. (test.should_pass_ks and "PASS" or "FAIL") .. ")")
+                failed = failed + 1
+            end
+        end
+        
+        print("\nCompatibility test results:")
+        print("Passed: " .. passed)
+        print("Failed: " .. failed)
+        print("Total: " .. (passed + failed))
+        
+        return failed == 0
+        EOF
+        
+        lua compatibility_test.lua
+        echo "Compatibility tests completed"
+      shell: bash

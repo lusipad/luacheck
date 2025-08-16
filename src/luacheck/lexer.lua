@@ -656,6 +656,8 @@ local function lex_hash(state, b)
       end
    else
       -- Normal mode: # is length operator
+      -- Advance position to consume the # character
+      state.offset = state.offset + 1
       return "#"
    end
 end
