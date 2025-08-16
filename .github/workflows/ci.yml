@@ -192,3 +192,19 @@ jobs:
         else
           echo "✅ No obviously broken links found"
         fi
+
+  trigger-release:
+    needs: [test, lint, format, security, docs]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push' && success()
+    
+    steps:
+    - name: Trigger auto release
+      run: |
+        echo "All CI checks passed on master branch"
+        echo "Triggering auto release workflow..."
+        
+        # Trigger auto release workflow
+        gh workflow run auto-release.yml -f release_type=patch -f create_tag=true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

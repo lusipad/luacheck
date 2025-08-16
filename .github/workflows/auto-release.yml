@@ -1,0 +1,246 @@
+name: Auto Release
+
+on:
+  push:
+    branches: [ master, main ]
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: 'Release type'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      create_tag:
+        description: 'Create new tag'
+        type: boolean
+        default: true
+
+jobs:
+  check-ci:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get-version.outputs.version }}
+      should-release: ${{ steps.check-changes.outputs.should-release }}
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Wait for CI to complete
+      run: |
+        echo "Waiting for CI workflows to complete..."
+        sleep 30
+        
+        # Check if recent commits have passing CI
+        latest_commit=$(git rev-parse HEAD)
+        echo "Latest commit: $latest_commit"
+        
+        # Wait for CI to complete (max 10 minutes)
+        for i in {1..20}; do
+          echo "Checking CI status (attempt $i)..."
+          
+          # Check if CI workflows completed successfully
+          if gh run list --branch ${{ github.ref_name }} --limit 5 --workflow "CI.yml" | grep -q "completed.*success"; then
+            echo "✅ CI workflow completed successfully"
+            break
+          fi
+          
+          if [ $i -eq 20 ]; then
+            echo "❌ CI workflow did not complete in time"
+            exit 1
+          fi
+          
+          sleep 30
+        done
+
+    - name: Get current version
+      id: get-version
+      run: |
+        current_version=$(grep '_VERSION.*=' src/luacheck/init.lua | cut -d'"' -f2)
+        echo "Current version: $current_version"
+        echo "version=$current_version" >> $GITHUB_OUTPUT
+
+    - name: Check for changes since last release
+      id: check-changes
+      run: |
+        # Get the latest tag
+        latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+        
+        if [ -z "$latest_tag" ]; then
+          echo "No previous tags found, should create first release"
+          echo "should-release=true" >> $GITHUB_OUTPUT
+        else
+          echo "Latest tag: $latest_tag"
+          
+          # Check if there are changes since last tag
+          changes=$(git log --oneline $latest_tag..HEAD | wc -l)
+          echo "Changes since last tag: $changes"
+          
+          if [ $changes -gt 0 ]; then
+            echo "should-release=true" >> $GITHUB_OUTPUT
+          else
+            echo "No changes since last tag"
+            echo "should-release=false" >> $GITHUB_OUTPUT
+          fi
+        fi
+
+  bump-version:
+    needs: check-ci
+    runs-on: ubuntu-latest
+    if: needs.check-ci.outputs.should-release == 'true'
+    outputs:
+      new_version: ${{ steps.bump-version.outputs.new_version }}
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Setup Git
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+
+    - name: Bump version
+      id: bump-version
+      run: |
+        current_version="${{ needs.check-ci.outputs.version }}"
+        
+        # Parse version
+        IFS='.' read -r major minor patch <<< "$current_version"
+        
+        # Determine release type
+        if [ "${{ github.event.inputs.release_type }}" == "major" ]; then
+          major=$((major + 1))
+          minor=0
+          patch=0
+        elif [ "${{ github.event.inputs.release_type }}" == "minor" ]; then
+          minor=$((minor + 1))
+          patch=0
+        else
+          patch=$((patch + 1))
+        fi
+        
+        new_version="$major.$minor.$patch"
+        echo "New version: $new_version"
+        echo "new_version=$new_version" >> $GITHUB_OUTPUT
+
+    - name: Update version in code
+      run: |
+        new_version="${{ steps.bump-version.outputs.new_version }}"
+        sed -i "s/_VERSION = .*/_VERSION = \"$new_version\"/" src/luacheck/init.lua
+        
+        # Verify the change
+        echo "Updated version in code:"
+        grep '_VERSION.*=' src/luacheck/init.lua
+
+    - name: Update CHANGELOG
+      run: |
+        new_version="${{ steps.bump-version.outputs.new_version }}"
+        current_date=$(date +%Y-%m-%d)
+        
+        # Create changelog entry
+        changelog_entry="## [$new_version] - $current_date\n\n### Added\n- Automated release\n\n### Changed\n- Version bump to $new_version\n\n### Fixed\n- CI test fixes\n\n"
+        
+        # Insert at the beginning of CHANGELOG.md
+        if [ -f "CHANGELOG.md" ]; then
+          tempfile=$(mktemp)
+          echo -e "$changelog_entry" > "$tempfile"
+          cat CHANGELOG.md >> "$tempfile"
+          mv "$tempfile" CHANGELOG.md
+        else
+          echo -e "# Changelog\n\n$changelog_entry" > CHANGELOG.md
+        fi
+        
+        echo "Updated CHANGELOG.md:"
+        head -20 CHANGELOG.md
+
+    - name: Commit version changes
+      run: |
+        git add src/luacheck/init.lua CHANGELOG.md
+        git commit -m "Bump version to ${{ steps.bump-version.outputs.new_version }}
+
+        🤖 Generated with [Claude Code](https://claude.ai/code)
+
+        Co-Authored-By: Claude <noreply@anthropic.com>"
+        
+        git push origin ${{ github.ref_name }}
+
+  create-tag:
+    needs: [check-ci, bump-version]
+    runs-on: ubuntu-latest
+    if: needs.check-ci.outputs.should-release == 'true' && (github.event.inputs.create_tag != 'false' || github.event_name != 'workflow_dispatch')
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Setup Git
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+
+    - name: Create and push tag
+      run: |
+        new_version="${{ needs.bump-version.outputs.new_version }}"
+        tag_name="v$new_version"
+        
+        echo "Creating tag: $tag_name"
+        
+        # Create annotated tag
+        git tag -a "$tag_name" -m "Release $tag_name
+
+        🤖 Generated with [Claude Code](https://claude.ai/code)
+
+        Co-Authored-By: Claude <noreply@anthropic.com>"
+        
+        # Push tag
+        git push origin "$tag_name"
+
+    - name: Wait for release workflow
+      run: |
+        tag_name="v${{ needs.bump-version.outputs.new_version }}"
+        echo "Waiting for release workflow to trigger for tag: $tag_name"
+        
+        # Wait for release workflow to start
+        for i in {1..30}; do
+          echo "Checking release workflow status (attempt $i)..."
+          
+          if gh run list --branch ${{ github.ref_name }} --limit 5 --workflow "release.yml" | grep -q "$tag_name"; then
+            echo "✅ Release workflow triggered for tag $tag_name"
+            break
+          fi
+          
+          if [ $i -eq 30 ]; then
+            echo "❌ Release workflow did not trigger"
+            exit 1
+          fi
+          
+          sleep 10
+        done
+
+  notify:
+    needs: [check-ci, bump-version, create-tag]
+    runs-on: ubuntu-latest
+    if: always() && needs.check-ci.outputs.should-release == 'true'
+    
+    steps:
+    - name: Send notification
+      run: |
+        if [ "${{ needs.create-tag.status }}" == "success" ]; then
+          echo "✅ Auto release completed successfully!"
+          echo "📦 New version: ${{ needs.bump-version.outputs.new_version }}"
+          echo "🏷️  Tag created: v${{ needs.bump-version.outputs.new_version }}"
+          echo "🔗 Release will be available at: ${{ github.server_url }}/${{ github.repository }}/releases/tag/v${{ needs.bump-version.outputs.new_version }}"
+        else
+          echo "❌ Auto release failed"
+          echo "Check the workflow logs for details"
+        fi

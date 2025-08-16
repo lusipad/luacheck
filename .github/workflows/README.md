@@ -4,7 +4,49 @@ This repository contains several automated workflows to ensure code quality, tes
 
 ## Workflows Overview
 
-### 1. Release Workflow (`.github/workflows/release.yml`)
+### 1. Auto Release Workflow (`.github/workflows/auto-release.yml`)
+
+**Triggers:**
+- Automatically after successful CI tests on master branch
+- Manual dispatch with version type selection
+
+**Purpose:**
+- Automatically detects changes since last release
+- Bumps version number (patch/minor/major)
+- Updates version in code and changelog
+- Creates git tags
+- Triggers release workflow
+
+**Features:**
+- Automatic version increment
+- Change detection
+- Automated changelog updates
+- Git tag creation
+
+**Usage:**
+```bash
+# Manual trigger with specific version type
+gh workflow run auto-release.yml -f release_type=minor -f create_tag=true
+```
+
+### 2. Manual Release Workflow (`.github/workflows/manual-release.yml`)
+
+**Triggers:**
+- Manual dispatch from GitHub Actions page
+
+**Purpose:**
+- Create releases with specific version numbers
+- Custom release notes
+- Prerelease support
+- Immediate release creation
+
+**Features:**
+- Exact version specification
+- Custom release notes
+- Prerelease option
+- Direct release creation
+
+### 3. Release Workflow (`.github/workflows/release.yml`)
 
 **Triggers:**
 - Push to tags matching `v*` (e.g., `v1.2.0`)
@@ -31,7 +73,7 @@ git tag v1.2.0
 git push origin v1.2.0
 ```
 
-### 2. CI Workflow (`.github/workflows/ci.yml`)
+### 4. CI Workflow (`.github/workflows/ci.yml`)
 
 **Triggers:**
 - Push to `master`, `main`, or `develop` branches
@@ -44,6 +86,7 @@ git push origin v1.2.0
 - Code linting and formatting checks
 - Security audits
 - Documentation validation
+- Triggers auto release on successful master branch pushes
 
 **Jobs:**
 - `test` - Runs unit tests and ks language tests
@@ -51,6 +94,7 @@ git push origin v1.2.0
 - `format` - Code formatting checks
 - `security` - Security vulnerability scanning
 - `docs` - Documentation validation
+- `trigger-release` - Triggers auto release on success
 
 ### 3. Documentation Workflow (`.github/workflows/docs.yml`)
 
@@ -113,11 +157,27 @@ git push origin v1.2.0
 
 ### Creating a Release
 
+You now have three ways to create releases:
+
+#### Option 1: Automated Release (Recommended)
+1. **Make Changes:** Push your changes to the master branch
+2. **Wait for CI:** CI tests will run automatically
+3. **Auto Release:** If CI passes, auto release will trigger automatically
+4. **Monitor:** Watch the auto release workflow progress
+
+#### Option 2: Manual Release with Specific Version
+1. **Go to Actions:** Navigate to the Actions tab in GitHub
+2. **Select Manual Release:** Choose the "Manual Release" workflow
+3. **Run Workflow:** Click "Run workflow" and fill in:
+   - **Version:** Exact version number (e.g., 1.0.1)
+   - **Release Notes:** Optional custom notes
+   - **Prerelease:** Mark as prerelease if needed
+
+#### Option 3: Traditional Tag-based Release
 1. **Update Version:**
    ```bash
-   # Update version in src/luacheck/version.lua
+   # Update version in src/luacheck/init.lua
    # Update CHANGELOG.md
-   # Update rockspec files
    ```
 
 2. **Tag the Release:**
@@ -129,6 +189,13 @@ git push origin v1.2.0
 3. **Monitor Progress:**
    - Check the Actions tab for release workflow status
    - Release will be automatically created with all assets
+
+### Release Types
+
+The auto release workflow supports three version bump types:
+- **patch:** Bug fixes and minor changes (default)
+- **minor:** New features and enhancements
+- **major:** Breaking changes and major updates
 
 ### Running Tests Locally
 
