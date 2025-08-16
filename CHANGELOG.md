@@ -1,6 +1,19 @@
 # Changelog
 
-## 1.0.1 (2025-08-16)
+## 1.0.2 (2025-08-16)
+
+### Fixed
+
+* **CI Workflow Issues**: Resolved CI test failures and timeouts:
+  - Removed unnecessary compilation steps from CI workflow
+  - Fixed workflow cancellations due to missing Makefile in root directory
+  - Updated to use pure Lua testing approach for this Lua-only project
+  - Added basic functionality tests to verify luacheck works correctly
+
+### Changed
+
+* **Workflow Optimization**: Streamlined CI to focus on essential testing
+* **Build Process**: Simplified testing approach for better reliability
 
 ### Fixed
 
